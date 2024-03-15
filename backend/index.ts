@@ -34,17 +34,8 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use("/api/chat", chatRouter);
 app.use("/api/detect", chatRouter);
-app.listen(port, '119.111.241.192', () => {
-  const networkInterfaces = os.networkInterfaces();
-  const addresses = networkInterfaces.enp2s0 || networkInterfaces.eth0 || networkInterfaces.wlan0; // Adjust this to match your network interface
-
-  let ipAddress;
-  if (addresses && addresses.length > 0) {
-    ipAddress = addresses[0].address;
-  } else {
-    ipAddress = "Unknown";
-  }
-
-  console.log(`⚡️[server]: Server is running at http://${ipAddress}:${port}`);
+app.listen(port, () => {
+  console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
+
 
