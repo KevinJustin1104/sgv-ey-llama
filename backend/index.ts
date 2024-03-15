@@ -33,7 +33,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/chat", chatRouter);
-
+app.use("/api/detect", chatRouter);
 app.listen(port, () => {
   const networkInterfaces = os.networkInterfaces();
   const addresses = networkInterfaces.enp2s0 || networkInterfaces.eth0 || networkInterfaces.wlan0; // Adjust this to match your network interface

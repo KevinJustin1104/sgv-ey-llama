@@ -22,7 +22,18 @@ const convertMessageContent = (
   ];
 };
 
-
+export const detect = (req:any, res:any) => {
+  try {
+    return res.status(200).json({
+      message: 'Connection success'
+    });
+  } catch (e) {
+    console.log('error', e);
+    return res.status(500).json({
+      message: 'Internal server error'
+    });
+  }
+};
 
 export const chat = async (req: Request, res: Response) => {
   try {
