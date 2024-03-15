@@ -1,4 +1,3 @@
-/* eslint-disable turbo/no-undeclared-env-vars */
 import cors from "cors";
 import "dotenv/config";
 import express, { Express, Request, Response } from "express";
@@ -26,7 +25,6 @@ if (isDevelopment) {
   app.use(cors(corsOptions));
 }
 
-
 app.use(express.text());
 
 app.get("/", (req: Request, res: Response) => {
@@ -36,5 +34,6 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/chat", chatRouter);
 
 app.listen(port, () => {
-  console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+  const address = require('os').networkInterfaces();
+  console.log(`⚡️[server]: Server is running at http://${address}: ${port}`);
 });
