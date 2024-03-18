@@ -5,10 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup index.ts --format esm --dts",
-    "start": "node dist/index.js",
-    "dev:tsup": "tsup index.ts --format esm --dts --watch",
-    "dev:nodemon": "nodemon -q dist/index.js",
-    "dev": "concurrently \"npm run dev:tsup\" \"npm run dev:nodemon\"",
+    "start": "pm2 start dist/index.js --name intelligo-llama",
     "generate": "node src/controllers/engine/generate.mjs"
   },
   "dependencies": {
