@@ -223,6 +223,7 @@ app.get("/", (req, res) => {
   res.send("LlamaIndex Express Server");
 });
 app.use("/api/chat", chat_route_default);
+app.use("/api/detect", chat_route_default);
 app.listen(port, () => {
   console.log(`\u26A1\uFE0F[server]: Server is running at http://localhost:${port}`);
 });
