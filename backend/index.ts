@@ -5,7 +5,7 @@ import chatRouter from "./src/routes/chat.route";
 import os from "os"; // Importing os module directly
 
 const app: Express = express();
-const port = parseInt(process.env.PORT || "8000");
+const port = parseInt(process.env.PORT || "8002");
 
 const env = process.env["NODE_ENV"];
 const isDevelopment = !env || env === "development";
@@ -13,7 +13,7 @@ const devCors = `./certificate.crt`;
 
 app.use(express.json());
 
-const prodCorsOrigin = process.env.PROD_CORS_ORIGIN || 'http://localhost:3001';
+const prodCorsOrigin = process.env.PROD_CORS_ORIGIN || 'http://localhost:8002';
 
 if (isDevelopment) {
   console.warn("Running in development mode - allowing CORS for all origins");
