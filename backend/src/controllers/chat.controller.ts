@@ -34,20 +34,27 @@ export const detect = (req:any, res:any) => {
     });
   }
 };
-
-
-
-// Your existing chat function
 export const chat = async (req: Request, res: Response) => {
   try {
-    const { message, sender } = req.body;
-    console.log('message:', message);
+    const { chatMessages } = req.body;
 
-    if (!message || sender !== "user") {
+    if (!Array.isArray(chatMessages)) {
       return res.status(400).json({
-        error: "The message and sender fields are required in the request body, and the sender must be 'user'",
+        error: "chatMessages must be an array.",
       });
     }
+
+    // Finding the user message within the chatMessages array
+    const userMessage = chatMessages.find(msg => msg.sender === "user" && msg.direction === "outgoing");
+
+    if (!userMessage || !userMessage.message) {
+      return res.status(400).json({
+        error: "User message not found or invalid format in the payload.",
+      });
+    }
+
+    // Extracting the user message content
+    const userMessageContent = userMessage.message;
 
     // Ignore SSL certificate verification
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -59,9 +66,6 @@ export const chat = async (req: Request, res: Response) => {
 
     const chatEngine = await createChatEngine(llm);
 
-    // Convert message content from your format to LlamaIndex/OpenAI format
-    const userMessageContent = message;
-
     // Calling LlamaIndex's ChatEngine to get a streamed response
     const response = await chatEngine.chat({
       message: userMessageContent,
@@ -70,23 +74,24 @@ export const chat = async (req: Request, res: Response) => {
       stream: true,
     });
 
-    // Return a stream, which can be consumed by the Vercel/AI client
-    const { stream, data: streamData } = LlamaIndexStream(response, {
-      // Assuming you don't have image URL in this payload format
-      parserOptions: {},
-    });
+    let generatedText = '';
 
-    // Pipe LlamaIndexStream to response
-    const processedStream = stream.pipeThrough(streamData.stream);
-    return streamToResponse(processedStream, res, {
-      headers: {
-        // response MUST have the `X-Experimental-Stream-Data: 'true'` header
-        // so that the client uses the correct parsing logic
-        "X-Experimental-Stream-Data": "true",
-        "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Expose-Headers": "X-Experimental-Stream-Data",
+    // Iterate over the AsyncGenerator to extract data chunks
+    for await (const chunk of response) {
+      generatedText += chunk;
+    }
+
+    const jsonResponse = {
+      success: true,
+      message: {
+        role: "assistant",
+        content: generatedText.trim(), // Trim to remove leading/trailing whitespace
       },
-    });
+    };
+
+    // Send the JSON response
+    res.json(jsonResponse);
+    
   } catch (error) {
     console.error("[LlamaIndex]", error);
     return res.status(500).json({

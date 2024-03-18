@@ -17,6 +17,8 @@ import {
 // Load environment variables from local .env file
 dotenv.config();
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 async function getRuntime(func) {
   const start = Date.now();
   await func();
