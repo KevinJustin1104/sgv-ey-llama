@@ -132,22 +132,6 @@ function LlamaIndexStream(res, opts) {
 }
 
 // src/controllers/chat.controller.ts
-var convertMessageContent = (textMessage, imageUrl) => {
-  if (!imageUrl)
-    return textMessage;
-  return [
-    {
-      type: "text",
-      text: textMessage
-    },
-    {
-      type: "image_url",
-      image_url: {
-        url: imageUrl
-      }
-    }
-  ];
-};
 var detect = (req, res) => {
   try {
     return res.status(200).json({
@@ -162,11 +146,11 @@ var detect = (req, res) => {
 };
 var chat = (req, res) => __async(void 0, null, function* () {
   try {
-    const { messages, data } = req.body;
-    const userMessage = messages.pop();
-    if (!messages || !userMessage || userMessage.role !== "user") {
+    const { message, sender } = req.body;
+    console.log("message:", message);
+    if (!message || sender !== "user") {
       return res.status(400).json({
-        error: "messages are required in the request body and the last message must be from the user"
+        error: "The message and sender fields are required in the request body, and the sender must be 'user'"
       });
     }
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -174,26 +158,22 @@ var chat = (req, res) => __async(void 0, null, function* () {
       model: process.env.MODEL || "gpt-3.5-turbo"
     });
     const chatEngine = yield createChatEngine(llm);
-    const userMessageContent = convertMessageContent(
-      userMessage.content,
-      data == null ? void 0 : data.imageUrl
-    );
+    const userMessageContent = message;
     const response = yield chatEngine.chat({
       message: userMessageContent,
-      chatHistory: messages,
+      // Assuming you don't have previous chat history in this payload format
+      chatHistory: [],
       stream: true
     });
     const { stream, data: streamData } = LlamaIndexStream(response, {
-      parserOptions: {
-        image_url: data == null ? void 0 : data.imageUrl
-      }
+      // Assuming you don't have image URL in this payload format
+      parserOptions: {}
     });
     const processedStream = stream.pipeThrough(streamData.stream);
     return streamToResponse(processedStream, res, {
       headers: {
         // response MUST have the `X-Experimental-Stream-Data: 'true'` header
-        // so that the client uses the correct parsing logic, see
-        // https://sdk.vercel.ai/docs/api-reference/stream-data#on-the-server
+        // so that the client uses the correct parsing logic
         "X-Experimental-Stream-Data": "true",
         "Content-Type": "text/plain; charset=utf-8",
         "Access-Control-Expose-Headers": "X-Experimental-Stream-Data"
@@ -214,13 +194,12 @@ llmRouter.route("/").get(detect);
 var chat_route_default = llmRouter;
 
 // index.ts
-import os from "os";
 var app = express2();
-var port = parseInt(process.env.PORT || "8000");
+var port = parseInt(process.env.PORT || "8002");
 var env = process.env["NODE_ENV"];
 var isDevelopment = !env || env === "development";
 app.use(express2.json());
-var prodCorsOrigin = process.env.PROD_CORS_ORIGIN || "http://localhost:3000";
+var prodCorsOrigin = process.env.PROD_CORS_ORIGIN || "http://localhost:8080";
 if (isDevelopment) {
   console.warn("Running in development mode - allowing CORS for all origins");
   app.use(cors());
@@ -234,18 +213,11 @@ if (isDevelopment) {
 }
 app.use(express2.text());
 app.get("/", (req, res) => {
+  console.log("connected");
   res.send("LlamaIndex Express Server");
 });
 app.use("/api/chat", chat_route_default);
 app.use("/api/detect", chat_route_default);
 app.listen(port, () => {
-  const networkInterfaces = os.networkInterfaces();
-  const addresses = networkInterfaces.enp2s0 || networkInterfaces.eth0 || networkInterfaces.wlan0;
-  let ipAddress;
-  if (addresses && addresses.length > 0) {
-    ipAddress = addresses[0].address;
-  } else {
-    ipAddress = "Unknown";
-  }
-  console.log(`\u26A1\uFE0F[server]: Server is running at http://${ipAddress}:${port}`);
+  console.log(`\u26A1\uFE0F[server]: Server is running at http://localhost:${port}`);
 });

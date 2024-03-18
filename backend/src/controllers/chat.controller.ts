@@ -35,43 +35,45 @@ export const detect = (req:any, res:any) => {
   }
 };
 
+
+
+// Your existing chat function
 export const chat = async (req: Request, res: Response) => {
   try {
-    const { messages, data }: { messages: ChatMessage[]; data: any } = req.body;
-    const userMessage = messages.pop();
-    if (!messages || !userMessage || userMessage.role !== "user") {
+    const { message, sender } = req.body;
+    console.log('message:', message);
+
+    if (!message || sender !== "user") {
       return res.status(400).json({
-        error: "messages are required in the request body and the last message must be from the user",
+        error: "The message and sender fields are required in the request body, and the sender must be 'user'",
       });
     }
 
     // Ignore SSL certificate verification
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
+    // Assuming you're using OpenAI, you'll need to modify this part
     const llm = new OpenAI({
       model: (process.env.MODEL as any) || "gpt-3.5-turbo",
     });
 
     const chatEngine = await createChatEngine(llm);
 
-    // Convert message content from Vercel/AI format to LlamaIndex/OpenAI format
-    const userMessageContent = convertMessageContent(
-      userMessage.content,
-      data?.imageUrl,
-    );
+    // Convert message content from your format to LlamaIndex/OpenAI format
+    const userMessageContent = message;
 
     // Calling LlamaIndex's ChatEngine to get a streamed response
     const response = await chatEngine.chat({
       message: userMessageContent,
-      chatHistory: messages,
+      // Assuming you don't have previous chat history in this payload format
+      chatHistory: [],
       stream: true,
     });
 
     // Return a stream, which can be consumed by the Vercel/AI client
     const { stream, data: streamData } = LlamaIndexStream(response, {
-      parserOptions: {
-        image_url: data?.imageUrl,
-      },
+      // Assuming you don't have image URL in this payload format
+      parserOptions: {},
     });
 
     // Pipe LlamaIndexStream to response
@@ -79,8 +81,7 @@ export const chat = async (req: Request, res: Response) => {
     return streamToResponse(processedStream, res, {
       headers: {
         // response MUST have the `X-Experimental-Stream-Data: 'true'` header
-        // so that the client uses the correct parsing logic, see
-        // https://sdk.vercel.ai/docs/api-reference/stream-data#on-the-server
+        // so that the client uses the correct parsing logic
         "X-Experimental-Stream-Data": "true",
         "Content-Type": "text/plain; charset=utf-8",
         "Access-Control-Expose-Headers": "X-Experimental-Stream-Data",
@@ -93,3 +94,5 @@ export const chat = async (req: Request, res: Response) => {
     });
   }
 };
+
+
