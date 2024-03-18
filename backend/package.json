@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsup index.ts --format esm --dts",
-    "start": "pm2 start dist/index.js --name intelligo-llama",
-    "generate": "node src/controllers/engine/generate.mjs"
+    "start": "node dist/index.js",
+    "dev": "concurrently \"tsup index.ts --format esm --dts --watch\" \"nodemon -q dist/index.js\" pm2 start index.ts",
+    "generate": "node src\\controllers\\engine\\generate.mjs"
   },
   "dependencies": {
     "ai": "^2.2.25",

@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2018", // Updated to target ES2018 for broader compatibility and access to newer language features.
-    "module": "CommonJS", // Specifying module format as CommonJS, which is commonly used in Node.js environments.
+    "target": "es2016",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

@@ -23,7 +23,7 @@ var __async = (__this, __arguments, generator) => {
 import cors from "cors";
 import "dotenv/config";
 import express2 from "express";
-import chatRouter from "../src/routes/chat.route";
+
 // src/routes/chat.route.ts
 import express from "express";
 
@@ -148,15 +148,73 @@ var convertMessageContent = (textMessage, imageUrl) => {
     }
   ];
 };
-
+var detect = (req, res) => {
+  try {
+    return res.status(200).json({
+      message: "Connection success"
+    });
+  } catch (e) {
+    console.log("error", e);
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+  }
+};
+var chat = (req, res) => __async(void 0, null, function* () {
+  try {
+    const { messages, data } = req.body;
+    const userMessage = messages.pop();
+    if (!messages || !userMessage || userMessage.role !== "user") {
+      return res.status(400).json({
+        error: "messages are required in the request body and the last message must be from the user"
+      });
+    }
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    const llm = new OpenAI({
+      model: process.env.MODEL || "gpt-3.5-turbo"
+    });
+    const chatEngine = yield createChatEngine(llm);
+    const userMessageContent = convertMessageContent(
+      userMessage.content,
+      data == null ? void 0 : data.imageUrl
+    );
+    const response = yield chatEngine.chat({
+      message: userMessageContent,
+      chatHistory: messages,
+      stream: true
+    });
+    const { stream, data: streamData } = LlamaIndexStream(response, {
+      parserOptions: {
+        image_url: data == null ? void 0 : data.imageUrl
+      }
+    });
+    const processedStream = stream.pipeThrough(streamData.stream);
+    return streamToResponse(processedStream, res, {
+      headers: {
+        // response MUST have the `X-Experimental-Stream-Data: 'true'` header
+        // so that the client uses the correct parsing logic, see
+        // https://sdk.vercel.ai/docs/api-reference/stream-data#on-the-server
+        "X-Experimental-Stream-Data": "true",
+        "Content-Type": "text/plain; charset=utf-8",
+        "Access-Control-Expose-Headers": "X-Experimental-Stream-Data"
+      }
+    });
+  } catch (error) {
+    console.error("[LlamaIndex]", error);
+    return res.status(500).json({
+      error: error.message
+    });
+  }
+});
 
 // src/routes/chat.route.ts
 var llmRouter = express.Router();
-llmRouter.route("/").post(chatRouter);
-llmRouter.route("/").post(chatRouter);
+llmRouter.route("/").post(chat);
+llmRouter.route("/").get(detect);
 var chat_route_default = llmRouter;
 
 // index.ts
+import os from "os";
 var app = express2();
 var port = parseInt(process.env.PORT || "8000");
 var env = process.env["NODE_ENV"];
@@ -181,5 +239,13 @@ app.get("/", (req, res) => {
 app.use("/api/chat", chat_route_default);
 app.use("/api/detect", chat_route_default);
 app.listen(port, () => {
-  console.log(`\u26A1\uFE0F[server]: Server is running at http://localhost:${port}`);
+  const networkInterfaces = os.networkInterfaces();
+  const addresses = networkInterfaces.enp2s0 || networkInterfaces.eth0 || networkInterfaces.wlan0;
+  let ipAddress;
+  if (addresses && addresses.length > 0) {
+    ipAddress = addresses[0].address;
+  } else {
+    ipAddress = "Unknown";
+  }
+  console.log(`\u26A1\uFE0F[server]: Server is running at http://${ipAddress}:${port}`);
 });
