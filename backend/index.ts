@@ -29,6 +29,7 @@ if (isDevelopment) {
 app.use(express.text());
 
 app.get("/", (req: Request, res: Response) => {
+  console.log('connected')
   res.send("LlamaIndex Express Server");
 });
 

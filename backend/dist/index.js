@@ -23,7 +23,7 @@ var __async = (__this, __arguments, generator) => {
 import cors from "cors";
 import "dotenv/config";
 import express2 from "express";
-
+import chatRouter from "../src/routes/chat.route";
 // src/routes/chat.route.ts
 import express from "express";
 
@@ -148,56 +148,12 @@ var convertMessageContent = (textMessage, imageUrl) => {
     }
   ];
 };
-var chat = (req, res) => __async(void 0, null, function* () {
-  try {
-    const { messages, data } = req.body;
-    const userMessage = messages.pop();
-    if (!messages || !userMessage || userMessage.role !== "user") {
-      return res.status(400).json({
-        error: "messages are required in the request body and the last message must be from the user"
-      });
-    }
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    const llm = new OpenAI({
-      model: process.env.MODEL || "gpt-3.5-turbo"
-    });
-    const chatEngine = yield createChatEngine(llm);
-    const userMessageContent = convertMessageContent(
-      userMessage.content,
-      data == null ? void 0 : data.imageUrl
-    );
-    const response = yield chatEngine.chat({
-      message: userMessageContent,
-      chatHistory: messages,
-      stream: true
-    });
-    const { stream, data: streamData } = LlamaIndexStream(response, {
-      parserOptions: {
-        image_url: data == null ? void 0 : data.imageUrl
-      }
-    });
-    const processedStream = stream.pipeThrough(streamData.stream);
-    return streamToResponse(processedStream, res, {
-      headers: {
-        // response MUST have the `X-Experimental-Stream-Data: 'true'` header
-        // so that the client uses the correct parsing logic, see
-        // https://sdk.vercel.ai/docs/api-reference/stream-data#on-the-server
-        "X-Experimental-Stream-Data": "true",
-        "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Expose-Headers": "X-Experimental-Stream-Data"
-      }
-    });
-  } catch (error) {
-    console.error("[LlamaIndex]", error);
-    return res.status(500).json({
-      error: error.message
-    });
-  }
-});
+
 
 // src/routes/chat.route.ts
 var llmRouter = express.Router();
-llmRouter.route("/").post(chat);
+llmRouter.route("/").post(chatRouter);
+llmRouter.route("/").post(chatRouter);
 var chat_route_default = llmRouter;
 
 // index.ts
