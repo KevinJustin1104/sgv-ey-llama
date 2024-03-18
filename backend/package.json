@@ -6,8 +6,10 @@
   "scripts": {
     "build": "tsup index.ts --format esm --dts",
     "start": "node dist/index.js",
-    "dev": "concurrently \"tsup index.ts --format esm --dts --watch\" \"nodemon -q dist/index.js\"",
-    "generate": "node src\\controllers\\engine\\generate.mjs"
+    "dev:tsup": "tsup index.ts --format esm --dts --watch",
+    "dev:nodemon": "nodemon -q dist/index.js",
+    "dev": "concurrently \"npm run dev:tsup\" \"npm run dev:nodemon\"",
+    "generate": "node src/controllers/engine/generate.mjs"
   },
   "dependencies": {
     "ai": "^2.2.25",
