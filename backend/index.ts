@@ -5,7 +5,7 @@ import chatRouter from "./src/routes/chat.route";
 import os from "os"; // Importing os module directly
 
 const app: Express = express();
-const port = parseInt(process.env.PORT || "3001");
+const port = parseInt(process.env.PORT || "3000");
 
 const env = process.env["NODE_ENV"];
 const isDevelopment = !env || env === "development";
