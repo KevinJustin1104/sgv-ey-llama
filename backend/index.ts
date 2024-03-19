@@ -9,7 +9,6 @@ const port = parseInt(process.env.PORT || "8002");
 
 const env = process.env["NODE_ENV"];
 const isDevelopment = !env || env === "development";
-const devCors = `./certificate.crt`;
 
 app.use(express.json());
 
@@ -29,12 +28,10 @@ if (isDevelopment) {
 app.use(express.text());
 
 app.get("/", (req: Request, res: Response) => {
-  console.log('connected')
   res.send("LlamaIndex Express Server");
 });
 
-app.use("/api/chat", chatRouter);
-app.use("/api/detect", chatRouter);
+app.use(chatRouter);
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });

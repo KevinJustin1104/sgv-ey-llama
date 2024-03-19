@@ -3,6 +3,11 @@ import { Request, Response } from "express";
 import { ChatMessage, MessageContent, OpenAI } from "llamaindex";
 import { createChatEngine } from "./engine";
 import { LlamaIndexStream } from "./llamaindex-stream";
+const env = process.env["NODE_ENV"];
+import multer from 'multer';
+import path from 'path';
+import generateScript from './engine/generate.js';
+
 const convertMessageContent = (
   textMessage: string,
   imageUrl: string | undefined,
@@ -21,7 +26,51 @@ const convertMessageContent = (
     },
   ];
 };
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'data/');
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  }
+});
 
+const upload = multer({ storage: storage }).single('file');
+export const generate = async(req: any, res: any) => {
+  try {
+    await generateScript();
+    res.status(200).json({ message: 'Generation script executed successfully' });
+  } catch (error) {
+    console.error('Error executing generation script:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+export const uploadFile = (req: any, res: any) => {
+  try {
+    upload(req, res, async function (err: any) {
+      if (err instanceof multer.MulterError) {
+        console.error('Multer Error:', err);
+        return res.status(400).json({ error: 'Multer error occurred' });
+      } else if (err) {
+        console.error('Unknown Error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      res.status(200).json({
+        message: 'File uploaded successfully',
+        filename: req.file.filename,
+        size: req.file.size
+      });
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 export const detect = (req:any, res:any) => {
   try {
     return res.status(200).json({
@@ -43,8 +92,6 @@ export const chat = async (req: Request, res: Response) => {
         error: "chatMessages must be an array.",
       });
     }
-
-    // Finding the user message within the chatMessages array
     const userMessage = chatMessages.find(msg => msg.sender === "user" && msg.direction === "outgoing");
 
     if (!userMessage || !userMessage.message) {
@@ -53,23 +100,20 @@ export const chat = async (req: Request, res: Response) => {
       });
     }
 
-    // Extracting the user message content
     const userMessageContent = userMessage.message;
 
-    // Ignore SSL certificate verification
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    if(String(process.env.DEVELOPMENT) === "0"){
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    }
 
-    // Assuming you're using OpenAI, you'll need to modify this part
     const llm = new OpenAI({
       model: (process.env.MODEL as any) || "gpt-3.5-turbo",
     });
 
     const chatEngine = await createChatEngine(llm);
 
-    // Calling LlamaIndex's ChatEngine to get a streamed response
     const response = await chatEngine.chat({
       message: userMessageContent,
-      // Assuming you don't have previous chat history in this payload format
       chatHistory: [],
       stream: true,
     });
@@ -85,11 +129,10 @@ export const chat = async (req: Request, res: Response) => {
       success: true,
       message: {
         role: "assistant",
-        content: generatedText.trim(), // Trim to remove leading/trailing whitespace
+        content: generatedText.trim(),
       },
     };
 
-    // Send the JSON response
     res.json(jsonResponse);
     
   } catch (error) {
